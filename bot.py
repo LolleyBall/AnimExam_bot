@@ -8,6 +8,7 @@ import random
 from stickers import stickers
 
 bot = telebot.TeleBot(config.token)
+que_num = ''
 keyboard1 = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
 button1 = types.KeyboardButton('ЕГЭ🇷🇺')
 button2 = types.KeyboardButton('Таблица лидеров🏆')
@@ -22,10 +23,17 @@ def start_message(message):
 
 
 def exam(message):
+    global que_num
     answer = types.InlineKeyboardMarkup()
-    que_num = int(random.uniform(0,1))
-    for index, ans in enumerate(questMas[que_num].answers):
-        answer.add(types.InlineKeyboardButton(answerPack[int(random.uniform(0, answerPack.len()))], callback_data=str(index)))
+    que_num = int(random.uniform(0, len(questMas)))
+    is_correct = False
+    for i in range(4):
+        index = int(random.uniform(0, len(answerPack)))
+        if i == 3 and is_correct == False:
+            index = questMas[que_num].answer
+        if index == questMas[que_num].answer:
+            is_correct = True
+        answer.add(types.InlineKeyboardButton(answerPack[index], callback_data=str(index)))
     bot.send_photo(message.chat.id, questMas[que_num].image, caption=questMas[que_num].task, reply_markup=answer)
 
 
@@ -39,14 +47,13 @@ def send_text(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
-    que_num = 0
     try:
         if call.message:
-            if call.data == str(questMas[que_num].correctAns):
-                bot.send_message(call.message.chat.id, 'Это же ' + questMas[que_num].answers[questMas[que_num].correctAns] + '! Правильно!!!')
+            if call.data == str(questMas[que_num].answer):
+                bot.send_message(call.message.chat.id, 'Это же ' + answerPack[questMas[que_num].answer] + '! Правильно!!!')
                 bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
             else:
-                bot.send_message(call.message.chat.id, wrongAnswers[int(random.uniform(0,6))])
+                bot.send_message(call.message.chat.id, 'Это не ' + answerPack[int(call.data)] + '. ' + wrongAnswers[int(random.uniform(0, len(wrongAnswers)))])
                 bot.edit_message_reply_markup(chat_id=call.message.chat.id, message_id=call.message.message_id, reply_markup=None)
             bot.answer_callback_query(callback_query_id=call.id, show_alert=False, text="Ответ принят")
     except Exception as e:
